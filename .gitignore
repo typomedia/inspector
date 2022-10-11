@@ -1,0 +1,5 @@
+.idea/
+vendor/
+composer.lock
+advisories.zip
+advisory-database-main/

@@ -1,0 +1,52 @@
+stages:
+  - basic
+  - static
+
+phploc:
+  stage: basic
+  tags:
+    - phpci-runner
+  script:
+    - phploc src/ --names=*.php
+
+lint:
+  stage: basic
+  tags:
+    - phpci-runner
+  script:
+    - parallel-lint --version
+    - parallel-lint src
+
+security:
+  stage: basic
+  tags:
+    - phpci-runner
+  script:
+    - composer install --quiet
+    - bin/inspector --version
+    - bin/inspector check
+
+phpmd:
+  stage: static
+  tags:
+    - phpci-runner
+  script:
+    - phpmd --version
+    - phpmd src/ text controversial,design,unusedcode | sed "s:^$CI_PROJECT_DIR::"
+
+sniffer:
+  stage: static
+  tags:
+    - phpci-runner
+  script:
+    - phpcs --version
+    - phpcs --standard=PSR1,PSR12 --extensions=php --error-severity=1 --warning-severity=8 src
+
+phpstan:
+  stage: static
+  tags:
+    - phpci-runner
+  script:
+    - composer install --quiet
+    - phpstan --version
+    - phpstan analyse --no-progress --level 2 src

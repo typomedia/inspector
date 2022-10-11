@@ -1,0 +1,16 @@
+{
+    "chmod": "0755",
+    "directories": [
+        "src"
+    ],
+    "finder": [
+        {
+            "name": "*.php",
+            "exclude": ["Test","Tests"],
+            "in": "vendor"
+        }
+    ],
+    "main": "bin/inspector",
+    "output": "dist/inspector.phar",
+    "stub": true
+}

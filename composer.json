@@ -1,0 +1,17 @@
+{
+    "name": "typomedia/inspector",
+    "description": "Symfony Inspector Command",
+    "license": "MIT",
+    "require": {
+        "php": ">=7.2",
+        "symfony/console": "^4.4",
+        "symfony/finder": "^4.4",
+        "ext-zip": "*",
+        "ext-json": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Typomedia\\Inspector\\": "src/Inspector"
+        }
+    }
+}

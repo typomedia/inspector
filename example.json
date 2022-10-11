@@ -1,0 +1,21 @@
+{
+  "packages": [
+    {
+      "name": "bootstrap",
+      "version": "v3.3.7",
+      "homepage": "bootstrap.com"
+    },
+    {
+      "name": "twig/twig",
+      "version": "v2.14.11",
+      "whitelist": [
+        "GHSA-52m2-vc4m-jj33",
+        "CVE-2022-39261"
+      ]
+    },
+    {
+      "name": "dompdf/dompdf",
+      "version": "v1.0.2"
+    }
+  ]
+}
