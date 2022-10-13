@@ -7,10 +7,11 @@ use Symfony\Component\Finder\Finder;
 
 class Crawler
 {
-    /**
-     * @var string
-     */
-    private string $endPoint = 'https://codeload.github.com/github/advisory-database/zip/main';
+    public const ENDPOINT = 'https://codeload.github.com/github/advisory-database/zip/main';
+
+    public const ECOSYSTEMS = ['Packagist', 'npm'];
+
+    private array $packages = [];
 
     /**
      * @param string $lockfile
@@ -25,30 +26,35 @@ class Crawler
 
         $whitelistContent = $this->getWhitelistContents($whitelist);
 
-        $this->extractTo($this->endPoint, '.');
+        $this->extract(self::ENDPOINT);
 
-        $path = './advisory-database-main/advisories/github-reviewed/';
+        $path = 'advisory-database-main/advisories/github-reviewed/';
         $finder = new Finder();
-        $tmp = $finder->files()->in($path)->name('*.json')->depth('> 1');
+        $files = $finder->files()->in($path)->name('*.json')->depth('> 1');
 
-        foreach ($tmp as $t) {
-            $decodeOneJson = json_decode(file_get_contents($t));
-            foreach ($decodeOneJson->affected as $affected) {
-                if ($affected->package->ecosystem == 'Packagist' || $affected->package->ecosystem == 'npm') {
+        foreach ($files as $file) {
+            $advisory = json_decode($file->getContents(), false);
+
+            foreach ($advisory->affected as $affected) {
+                $ecosystem = $affected->package->ecosystem;
+                if (in_array($ecosystem, self::ECOSYSTEMS, true)) {
                     foreach ($affected->ranges as $range) {
-                        if (isset($range->events[1]->fixed)) {
-                            $packages[$affected->package->name][] = [
-                                "introduced" => $range->events[0]->introduced,
-                                "fixed" => $range->events[1]->fixed,
-                                "data" => $decodeOneJson,
-                            ];
-                        } else { // still present vulnerability
-                            $packages[$affected->package->name][] = [
-                                "introduced" => $range->events[0]->introduced,
-                                "last_known_affected_version_range" => trim((string) $affected->database_specific->last_known_affected_version_range, '<>= '),
-                                "data" => $decodeOneJson,
+                        $fixed = $range->events[1]->fixed;
+                        $intro = $range->events[0]->introduced;
+                        $range = $affected->database_specific->last_known_affected_version_range;
+                        if (isset($fixed)) {
+                            $this->packages[$affected->package->name][] = [
+                                'intro' => $intro,
+                                'fixed' => $fixed,
+                                'data' => $advisory,
                             ];
                         }
+                        // still unfixed vulnerability
+                        $this->packages[$affected->package->name][] = [
+                            'intro' => $intro,
+                            'range' => trim((string) $range, '<>= '),
+                            "data" => $advisory,
+                        ];
                     }
                 }
             }
@@ -57,19 +63,19 @@ class Crawler
         $vulnerabilities = [];
         foreach ($decodeJson->packages as $lockPackage) {
             $version = trim((string) $lockPackage->version, 'v');
-            if (isset($packages[$lockPackage->name])) {
-                foreach ($packages[$lockPackage->name] as $vulnerability) {
+            if (isset($this->packages[$lockPackage->name])) {
+                foreach ($this->packages[$lockPackage->name] as $vulnerability) {
                     $id = strtolower((string) $vulnerability['data']->id);
                     $cve = strtolower((string) $vulnerability['data']->aliases[0]);
                     $vuls = $whitelistContent['packages'][$lockPackage->name]['vuls'];
                     $whitelist = array_map('strtolower', $vuls ?: []);
 
                     if (!in_array($id, $whitelist) && !in_array($cve, $whitelist)) {
-                        if (version_compare($version, $vulnerability['introduced'] ?? '', '>=') && version_compare($version, $vulnerability['fixed'] ?? '', '<')) {
+                        if (version_compare($version, $vulnerability['intro'] ?? '', '>=') && version_compare($version, $vulnerability['fixed'] ?? '', '<')) {
                             $vulnerabilities[$lockPackage->name . ' (' . $version . ')'][] = ($vulnerability);
                         }
 
-                        if (version_compare($version, $vulnerability['introduced'] ?? '', '>=') && version_compare($version, $vulnerability['last_known_affected_version_range'] ?? '', '<=')) {
+                        if (version_compare($version, $vulnerability['intro'] ?? '', '>=') && version_compare($version, $vulnerability['range'] ?? '', '<=')) {
                             $vulnerabilities[$lockPackage->name . ' (' . $version . ')'][] = ($vulnerability);
                         }
                     }
@@ -83,16 +89,15 @@ class Crawler
     /**
      * @throws Exception
      */
-    private function extractTo(string $fileUrl, string $path): void
+    private function extract(string $fileUrl): void
     {
-        @mkdir($path);
-        $fileZip = $path . '/advisories.zip';
+        $fileZip = 'advisories.zip';
         if (!file_exists($fileZip) || time() > (filemtime($fileZip) + (60 * 60 * 2))) {
             file_put_contents($fileZip, file_get_contents($fileUrl));
             $zip = new \ZipArchive();
             if (file_exists($fileZip)) {
                 if ($zip->open($fileZip)) {
-                    $zip->extractTo($path);
+                    $zip->extractTo('.');
                     $zip->close();
                 } else {
                     throw new Exception("Failed to open '$fileZip'");
