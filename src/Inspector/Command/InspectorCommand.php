@@ -125,10 +125,10 @@ EOF
 
             $output->writeln('');
             $output->writeln('<error>> ' . $counter . ' packages have known vulnerabilities</error>');
+        } else {
+            $output->writeln('');
+            $output->writeln('<bg=green>No packages have known vulnerabilities.</>');
         }
-
-        $output->writeln('');
-        $output->writeln('<bg=green>No packages have known vulnerabilities.</>');
 
         $exit = $counter > 0;
         return (int)$exit;
