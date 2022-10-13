@@ -3,7 +3,7 @@
     "description": "Symfony Inspector Command",
     "license": "MIT",
     "require": {
-        "php": ">=7.2",
+        "php": ">=7.4",
         "symfony/console": "^4.4",
         "symfony/finder": "^4.4",
         "ext-zip": "*",
@@ -13,5 +13,18 @@
         "psr-4": {
             "Typomedia\\Inspector\\": "src/Inspector"
         }
+    },
+    "require-dev": {
+        "squizlabs/php_codesniffer": "^3.7",
+        "phpmd/phpmd": "^2.13"
+    },
+    "scripts": {
+        "fix": [
+            "vendor/bin/phpcbf --standard=PSR1,PSR12 src"
+        ],
+        "check": [
+            "vendor/bin/phpcs --standard=PSR1,PSR12 --error-severity=1 --warning-severity=8 src",
+            "vendor/bin/phpmd src text codesize, controversial, design, naming, unusedcode"
+        ]
     }
 }

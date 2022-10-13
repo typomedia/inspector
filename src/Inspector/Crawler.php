@@ -2,25 +2,35 @@
 
 namespace Typomedia\Inspector;
 
+use Exception;
 use Symfony\Component\Finder\Finder;
 
 class Crawler
 {
-    private $endPoint = 'https://codeload.github.com/github/advisory-database/zip/main';
-    
+    /**
+     * @var string
+     */
+    private string $endPoint = 'https://codeload.github.com/github/advisory-database/zip/main';
+
+    /**
+     * @param string $lockfile
+     * @param string $whitelist
+     * @return array
+     * @throws Exception
+     */
     public function parse(string $lockfile, string $whitelist): array
     {
         $lockContent = $this->getLockContents($lockfile);
         $decodeJson = json_decode($lockContent);
 
         $whitelistContent = $this->getWhitelistContents($whitelist);
-        
+
         $this->extractTo($this->endPoint, '.');
-        
+
         $path = './advisory-database-main/advisories/github-reviewed/';
         $finder = new Finder();
         $tmp = $finder->files()->in($path)->name('*.json')->depth('> 1');
-        
+
         foreach ($tmp as $t) {
             $decodeOneJson = json_decode(file_get_contents($t));
             foreach ($decodeOneJson->affected as $affected) {
@@ -36,7 +46,7 @@ class Crawler
                         else { // still present vulnerability
                             $packages[$affected->package->name][] = [
                                 "introduced" => $range->events[0]->introduced,
-                                "last_known_affected_version_range" => trim($affected->database_specific->last_known_affected_version_range, '<>= '),
+                                "last_known_affected_version_range" => trim((string) $affected->database_specific->last_known_affected_version_range, '<>= '),
                                 "data" => $decodeOneJson,
                             ];
                         }
@@ -44,14 +54,16 @@ class Crawler
                 }
             }
         }
+
         $vulnerabilities = [];
         foreach ($decodeJson->packages as $lockPackage) {
-            $version = trim($lockPackage->version, 'v');
+            $version = trim((string) $lockPackage->version, 'v');
             if (isset($packages[$lockPackage->name])) {
                 foreach ($packages[$lockPackage->name] as $vulnerability) {
-                    $id = strtolower($vulnerability['data']->id);
-                    $cve = strtolower($vulnerability['data']->aliases[0]);
-                    $whitelist = array_map('strtolower', $whitelistContent['packages'][$lockPackage->name]['vuls']);
+                    $id = strtolower((string) $vulnerability['data']->id);
+                    $cve = strtolower((string) $vulnerability['data']->aliases[0]);
+                    $vuls = $whitelistContent['packages'][$lockPackage->name]['vuls'];
+                    $whitelist = array_map('strtolower', $vuls ?: []);
 
                     if (!in_array($id, $whitelist) && !in_array($cve, $whitelist)) {
                         if (version_compare($version, $vulnerability['introduced'], '>=') && version_compare($version, $vulnerability['fixed'], '<')) {
@@ -65,9 +77,13 @@ class Crawler
                 }
             }
         }
+
         return $vulnerabilities;
     }
 
+    /**
+     * @throws Exception
+     */
     private function extractTo(string $fileUrl, string $path): void
     {
         @mkdir($path);
@@ -80,14 +96,18 @@ class Crawler
                     $zip->extractTo($path);
                     $zip->close();
                 } else {
-                    throw new \Exception("Failed to open '$fileZip'");
+                    throw new Exception("Failed to open '$fileZip'");
                 }
             } else {
-                throw new \Exception("File doesn't exist. '$fileZip'");
+                throw new Exception("File doesn't exist. '$fileZip'");
             }
         }
     }
-    
+
+    /**
+     * @param string $lock
+     * @return string
+     */
     private function getLockContents(string $lock): string
     {
         $contents = json_decode(file_get_contents($lock), true);
@@ -102,6 +122,7 @@ class Crawler
             if (!\is_array($contents[$key])) {
                 continue;
             }
+
             foreach ($contents[$key] as $package) {
                 $data = [
                     'name' => $package['name'],
@@ -110,6 +131,7 @@ class Crawler
                 if (isset($package['time']) && false !== strpos($package['version'], 'dev')) {
                     $data['time'] = $package['time'];
                 }
+
                 $packages[$key][] = $data;
             }
         }
@@ -121,7 +143,7 @@ class Crawler
      * @param string $whitelist
      * @return array|array[]
      */
-    private function getWhitelistContents(string $whitelist)
+    private function getWhitelistContents(string $whitelist): array
     {
         $contents = json_decode(file_get_contents($whitelist), true);
         $whitelist = [];
@@ -130,6 +152,7 @@ class Crawler
             if (!\is_array($contents[$key])) {
                 continue;
             }
+
             foreach ($contents[$key] as $package) {
                 $whitelist[$key][$package['name']] = [
                     'vuls' => $package['whitelist'],

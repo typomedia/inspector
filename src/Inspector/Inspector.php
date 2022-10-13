@@ -2,23 +2,34 @@
 
 namespace Typomedia\Inspector;
 
+use Exception;
 use Typomedia\Inspector\Exception\RuntimeException;
 
 class Inspector
 {
+    /**
+     * @var string
+     */
     const VERSION = '1.2.0';
 
-    private $crawler;
+    /**
+     * @var Crawler
+     */
+    private Crawler $crawler;
 
+    /**
+     * @param Crawler|null $crawler
+     */
     public function __construct(Crawler $crawler = null)
     {
-        $this->crawler = null === $crawler ? new Crawler() : $crawler;
+        $this->crawler = $crawler ?? new Crawler();
     }
 
     /**
      * @param string $lockfile
      * @param string $whitelist
      * @return array
+     * @throws Exception
      */
     public function check(string $lockfile, string $whitelist): array
     {

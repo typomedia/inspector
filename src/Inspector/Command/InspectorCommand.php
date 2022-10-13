@@ -21,10 +21,8 @@ use Symfony\Component\Console\Output\OutputInterface;
 class InspectorCommand extends Command
 {
     /**
-     * @var Inspector
+     * @var array
      */
-    private $checker;
-
     const SERVERITY = [
         'low'       => 1,
         'moderate'  => 2,
@@ -32,10 +30,17 @@ class InspectorCommand extends Command
         'critical'  => 4
     ];
 
-    public function __construct(Inspector $checker)
-    {
-        $this->checker = $checker;
+    /**
+     * @var Inspector
+     */
+    private Inspector $inspector;
 
+    /**
+     * @param Inspector $inspector
+     */
+    public function __construct(Inspector $inspector)
+    {
+        $this->inspector = $inspector;
         parent::__construct();
     }
 
@@ -84,22 +89,22 @@ EOF
      * @param OutputInterface $output
      * @return int
      */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $lockfile = $input->getArgument('lockfile');
         $severity = $input->getOption('severity');
         $whitelist = $input->getOption('whitelist') ?: $lockfile;
         $counter = 0;
 
-        $vulnerabilities = $this->checker->check($lockfile, $whitelist);
+        $vulnerabilities = $this->inspector->check($lockfile, $whitelist);
 
         $output->writeln('<comment># Github Advisory Database Report</comment>');
         if ($vulnerabilities) {
             foreach ($vulnerabilities as $key => $vuls) {
                 $headline = true;
                 foreach ($vuls as $vul) {
-                    $severity1 = self::SERVERITY[strtolower(trim($severity))];
-                    $severity2 = self::SERVERITY[strtolower(trim($vul['data']->database_specific->severity))];
+                    $severity1 = self::SERVERITY[strtolower(trim((string) $severity))];
+                    $severity2 = self::SERVERITY[strtolower(trim((string) $vul['data']->database_specific->severity))];
 
                     if ($severity2 >= $severity1) {
                         if ($headline) { // Print headline only once
@@ -117,6 +122,7 @@ EOF
                     }
                 }
             }
+
             $output->writeln('');
             $output->writeln('<error>> ' . $counter . ' packages have known vulnerabilities</error>');
         } else {
