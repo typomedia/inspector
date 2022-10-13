@@ -18,6 +18,9 @@
         "squizlabs/php_codesniffer": "^3.7",
         "phpmd/phpmd": "^2.13"
     },
+    "bin": [
+        "bin/inspector"
+    ],
     "scripts": {
         "fix": [
             "vendor/bin/phpcbf --standard=PSR1,PSR12 src"
