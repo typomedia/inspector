@@ -108,7 +108,7 @@ EOF
 
                     if ($severity2 >= $severity1) {
                         if ($headline) { // Print headline only once
-                            $counter ++;
+                            $counter++;
                             $output->writeln('');
                             $output->writeln('<comment>## ' . $key . '</comment>');
                             $headline = false;
