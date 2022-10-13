@@ -42,8 +42,7 @@ class Crawler
                                 "fixed" => $range->events[1]->fixed,
                                 "data" => $decodeOneJson,
                             ];
-                        }
-                        else { // still present vulnerability
+                        } else { // still present vulnerability
                             $packages[$affected->package->name][] = [
                                 "introduced" => $range->events[0]->introduced,
                                 "last_known_affected_version_range" => trim((string) $affected->database_specific->last_known_affected_version_range, '<>= '),
@@ -135,7 +134,7 @@ class Crawler
                 $packages[$key][] = $data;
             }
         }
-        
+
         return json_encode($packages);
     }
 
