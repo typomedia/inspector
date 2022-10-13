@@ -66,11 +66,11 @@ class Crawler
                     $whitelist = array_map('strtolower', $vuls ?: []);
 
                     if (!in_array($id, $whitelist) && !in_array($cve, $whitelist)) {
-                        if (version_compare($version, $vulnerability['introduced'], '>=') && version_compare($version, $vulnerability['fixed'], '<')) {
+                        if (version_compare($version, $vulnerability['introduced'] ?? '', '>=') && version_compare($version, $vulnerability['fixed'] ?? '', '<')) {
                             $vulnerabilities[$lockPackage->name . ' (' . $version . ')'][] = ($vulnerability);
                         }
 
-                        if (version_compare($version, $vulnerability['introduced'], '>=') && version_compare($version, $vulnerability['last_known_affected_version_range'], '<=')) {
+                        if (version_compare($version, $vulnerability['introduced'] ?? '', '>=') && version_compare($version, $vulnerability['last_known_affected_version_range'] ?? '', '<=')) {
                             $vulnerabilities[$lockPackage->name . ' (' . $version . ')'][] = ($vulnerability);
                         }
                     }
