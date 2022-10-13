@@ -12,6 +12,9 @@ class Crawler
     public const ECOSYSTEMS = ['Packagist', 'npm'];
 
     private array $packages = [];
+    private array $advisories = [];
+
+    private array $vulnerabilities = [];
 
     /**
      * @param string $lockfile
@@ -28,8 +31,8 @@ class Crawler
 
         $this->extract(self::ENDPOINT);
 
-        $path = 'advisory-database-main/advisories/github-reviewed/';
         $finder = new Finder();
+        $path = 'advisory-database-main/advisories/github-reviewed/';
         $files = $finder->files()->in($path)->name('*.json')->depth('> 1');
 
         foreach ($files as $file) {
@@ -43,14 +46,14 @@ class Crawler
                         $intro = $range->events[0]->introduced;
                         $range = $affected->database_specific->last_known_affected_version_range;
                         if (isset($fixed)) {
-                            $this->packages[$affected->package->name][] = [
+                            $this->advisories[$affected->package->name][] = [
                                 'intro' => $intro,
                                 'fixed' => $fixed,
                                 'data' => $advisory,
                             ];
                         }
-                        // still unfixed vulnerability
-                        $this->packages[$affected->package->name][] = [
+                        // handle unfixed vulnerability
+                        $this->advisories[$affected->package->name][] = [
                             'intro' => $intro,
                             'range' => trim((string) $range, '<>= '),
                             "data" => $advisory,
@@ -60,30 +63,30 @@ class Crawler
             }
         }
 
-        $vulnerabilities = [];
-        foreach ($decodeJson->packages as $lockPackage) {
-            $version = trim((string) $lockPackage->version, 'v');
-            if (isset($this->packages[$lockPackage->name])) {
-                foreach ($this->packages[$lockPackage->name] as $vulnerability) {
-                    $id = strtolower((string) $vulnerability['data']->id);
-                    $cve = strtolower((string) $vulnerability['data']->aliases[0]);
-                    $vuls = $whitelistContent['packages'][$lockPackage->name]['vuls'];
-                    $whitelist = array_map('strtolower', $vuls ?: []);
+        foreach ($decodeJson->packages as $package) {
+            $version = trim((string) $package->version, 'v');
+            foreach ($this->advisories[$package->name] as $advisory) {
+                $gid = strtolower((string) $advisory['data']->id);
+                $cve = strtolower((string) $advisory['data']->aliases[0]);
 
-                    if (!in_array($id, $whitelist) && !in_array($cve, $whitelist)) {
-                        if (version_compare($version, $vulnerability['intro'] ?? '', '>=') && version_compare($version, $vulnerability['fixed'] ?? '', '<')) {
-                            $vulnerabilities[$lockPackage->name . ' (' . $version . ')'][] = ($vulnerability);
-                        }
+                $vuls = $whitelistContent['packages'][$package->name]['vuls'];
+                $whitelist = array_map('strtolower', $vuls ?: []);
 
-                        if (version_compare($version, $vulnerability['intro'] ?? '', '>=') && version_compare($version, $vulnerability['range'] ?? '', '<=')) {
-                            $vulnerabilities[$lockPackage->name . ' (' . $version . ')'][] = ($vulnerability);
-                        }
+                if (!in_array($gid, $whitelist) && !in_array($cve, $whitelist)) {
+                    if (version_compare($version, $advisory['intro'] ?? '', '>=') &&
+                        version_compare($version, $advisory['fixed'] ?? '', '<')) {
+                        $this->vulnerabilities[$package->name . ' (' . $version . ')'][] = ($advisory);
+                    }
+
+                    if (version_compare($version, $advisory['intro'] ?? '', '>=') &&
+                        version_compare($version, $advisory['range'] ?? '', '<=')) {
+                        $this->vulnerabilities[$package->name . ' (' . $version . ')'][] = ($advisory);
                     }
                 }
             }
         }
 
-        return $vulnerabilities;
+        return $this->vulnerabilities;
     }
 
     /**
