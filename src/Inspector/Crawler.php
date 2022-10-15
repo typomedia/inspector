@@ -72,7 +72,7 @@ class Crawler
                 $vuls = $whitelistContent[$package->name]['vuls'];
                 $whitelist = array_map('strtolower', $vuls);
 
-                if (!in_array($gid, $whitelist) && !in_array($cve, $whitelist)) {
+                if (!in_array($gid, $whitelist, true) && !in_array($cve, $whitelist, true)) {
                     if (version_compare($version, $advisory['intro'] ?? '', '>=') &&
                         version_compare($version, $advisory['fixed'] ?? '', '<')) {
                         $this->vulnerabilities[$package->name . '@' . $version][] = ($advisory);
