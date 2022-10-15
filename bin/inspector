@@ -8,8 +8,7 @@ require __DIR__.'/../vendor/autoload.php';
 use Symfony\Component\Console\Application;
 use Typomedia\Inspector\Command\InspectorCommand;
 use Typomedia\Inspector\Inspector;
-use Typomedia\Inspector\Crawler;
 
 $console = new Application('Inspector', Inspector::VERSION);
-$console->add(new InspectorCommand(new Inspector(new Crawler())));
+$console->add(new InspectorCommand());
 $console->run();

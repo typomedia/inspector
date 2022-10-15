@@ -35,12 +35,9 @@ class InspectorCommand extends Command
      */
     private Inspector $inspector;
 
-    /**
-     * @param Inspector $inspector
-     */
-    public function __construct(Inspector $inspector)
+    public function __construct()
     {
-        $this->inspector = $inspector;
+        $this->inspector = new Inspector();
         parent::__construct();
     }
 

@@ -17,12 +17,9 @@ class Inspector
      */
     private Crawler $crawler;
 
-    /**
-     * @param Crawler|null $crawler
-     */
-    public function __construct(Crawler $crawler = null)
+    public function __construct()
     {
-        $this->crawler = $crawler ?? new Crawler();
+        $this->crawler = new Crawler();
     }
 
     /**
