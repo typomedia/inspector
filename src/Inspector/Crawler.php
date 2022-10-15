@@ -124,15 +124,17 @@ class Crawler
      * @param string $file
      * @return array
      */
-    private function getWhitelist(string $file): array
+    public function getWhitelist(string $file): array
     {
         $contents = $this->getContents($file);
         $whitelist = [];
 
         foreach ($contents->packages as $package) {
-            $whitelist[$package->name] = [
-                'vuls' => $package->whitelist,
-            ];
+            if (isset($package->whitelist)) {
+                $whitelist[$package->name] = [
+                    'vuls' => $package->whitelist,
+                ];
+            }
         }
 
         return $whitelist;
