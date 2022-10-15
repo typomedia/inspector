@@ -130,9 +130,9 @@ class Crawler
         $whitelist = [];
 
         foreach ($contents->packages as $package) {
-                $whitelist[$package->name] = [
-                    'vuls' => $package->whitelist ?? [],
-                ];
+            $whitelist[$package->name] = [
+                'vuls' => $package->whitelist ?? [],
+            ];
         }
 
         return $whitelist;
