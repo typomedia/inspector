@@ -102,7 +102,9 @@ class Crawler
     }
 
     /**
-     * @throws RuntimeException
+     * @param string $file
+     * @param string $path
+     * @return void
      */
     private function extract(string $file, string $path = '.'): void
     {
@@ -119,6 +121,11 @@ class Crawler
         }
     }
 
+    /**
+     * @param string $file
+     * @param string $name
+     * @return void
+     */
     public function fetch(string $file, string $name): void
     {
         if (!file_exists($name) || time() > (filemtime($name) + (60 * 60 * 2))) {
