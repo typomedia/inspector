@@ -5,17 +5,13 @@ namespace Typomedia\Inspector;
 use Exception;
 use RuntimeException;
 use Symfony\Component\Finder\Finder;
+use ZipArchive;
 
 class Crawler
 {
     public const ENDPOINT = 'https://codeload.github.com/github/advisory-database/zip/main';
 
     public const ECOSYSTEMS = ['Packagist', 'npm'];
-
-    /**
-     * @var object
-     */
-    private object $packages;
 
     /**
      * @var array
@@ -40,7 +36,8 @@ class Crawler
      */
     public function parse(string $lockfile, string $whitelist): array
     {
-        $this->extract(self::ENDPOINT);
+        $this->fetch(self::ENDPOINT, 'advisories.zip');
+        $this->extract('advisories.zip');
 
         $finder = new Finder();
         $path = 'advisory-database-main/advisories/github-reviewed/';
@@ -63,6 +60,7 @@ class Crawler
                                 'data' => $advisory,
                             ];
                         }
+
                         // handle unfixed vulnerability
                         $this->advisories[$affected->package->name][] = [
                             'intro' => $intro,
@@ -74,10 +72,10 @@ class Crawler
             }
         }
 
-        $this->packages = $this->getContents($lockfile);
+        $packages = $this->getContents($lockfile);
         $this->whitelist = $this->getWhitelist($whitelist);
 
-        foreach ($this->packages->packages as $package) {
+        foreach ($packages->packages as $package) {
             $version = trim((string) $package->version, 'v');
             foreach ($this->advisories[$package->name] as $advisory) {
                 $gid = strtolower((string) $advisory['data']->id);
@@ -106,22 +104,25 @@ class Crawler
     /**
      * @throws RuntimeException
      */
-    private function extract(string $fileUrl): void
+    private function extract(string $file, string $path = '.'): void
     {
-        $fileZip = 'advisories.zip';
-        if (!file_exists($fileZip) || time() > (filemtime($fileZip) + (60 * 60 * 2))) {
-            file_put_contents($fileZip, file_get_contents($fileUrl));
-            $zip = new \ZipArchive();
-            if (file_exists($fileZip)) {
-                if ($zip->open($fileZip)) {
-                    $zip->extractTo('.');
-                    $zip->close();
-                } else {
-                    throw new RuntimeException("Failed to open '$fileZip'");
-                }
+        $zip = new ZipArchive();
+        if (file_exists($file)) {
+            if ($zip->open($file)) {
+                $zip->extractTo($path);
+                $zip->close();
             } else {
-                throw new RuntimeException("File doesn't exist. '$fileZip'");
+                throw new RuntimeException(sprintf("Failed to open '%s'", $file));
             }
+        } else {
+            throw new RuntimeException(sprintf("File doesn't exist. '%s'", $file));
+        }
+    }
+
+    public function fetch(string $file, string $name): void
+    {
+        if (!file_exists($name) || time() > (filemtime($name) + (60 * 60 * 2))) {
+            file_put_contents($name, file_get_contents($file));
         }
     }
 
@@ -141,14 +142,13 @@ class Crawler
     public function getWhitelist(string $file): array
     {
         $contents = $this->getContents($file);
-        $whitelist = [];
 
         foreach ($contents->packages as $package) {
-            $whitelist[$package->name] = [
+            $this->whitelist[$package->name] = [
                 'vuls' => $package->whitelist ?? [],
             ];
         }
 
-        return $whitelist;
+        return $this->whitelist;
     }
 }
