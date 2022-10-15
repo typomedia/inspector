@@ -114,7 +114,7 @@ class Crawler
             $zip = new \ZipArchive();
             if (file_exists($fileZip)) {
                 if ($zip->open($fileZip)) {
-                    $zip->extractTo(__DIR__);
+                    $zip->extractTo('.');
                     $zip->close();
                 } else {
                     throw new RuntimeException("Failed to open '$fileZip'");
