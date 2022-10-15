@@ -12,9 +12,24 @@ class Crawler
 
     public const ECOSYSTEMS = ['Packagist', 'npm'];
 
-    private array $packages = [];
+    /**
+     * @var object
+     */
+    private object $packages;
+
+    /**
+     * @var array
+     */
+    private array $whitelist = [];
+
+    /**
+     * @var array
+     */
     private array $advisories = [];
 
+    /**
+     * @var array
+     */
     private array $vulnerabilities = [];
 
     /**
@@ -25,8 +40,6 @@ class Crawler
      */
     public function parse(string $lockfile, string $whitelist): array
     {
-        $whitelistContent = $this->getWhitelist($whitelist);
-
         $this->extract(self::ENDPOINT);
 
         $finder = new Finder();
@@ -61,15 +74,16 @@ class Crawler
             }
         }
 
-        $decodeJson = $this->getContents($lockfile);
+        $this->packages = $this->getContents($lockfile);
+        $this->whitelist = $this->getWhitelist($whitelist);
 
-        foreach ($decodeJson->packages as $package) {
+        foreach ($this->packages->packages as $package) {
             $version = trim((string) $package->version, 'v');
             foreach ($this->advisories[$package->name] as $advisory) {
                 $gid = strtolower((string) $advisory['data']->id);
                 $cve = strtolower((string) $advisory['data']->aliases[0]);
 
-                $vuls = $whitelistContent[$package->name]['vuls'];
+                $vuls = $this->whitelist[$package->name]['vuls'];
                 $whitelist = array_map('strtolower', $vuls);
 
                 if (!in_array($gid, $whitelist, true) && !in_array($cve, $whitelist, true)) {
