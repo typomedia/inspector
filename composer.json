@@ -14,9 +14,16 @@
             "Typomedia\\Inspector\\": "src/Inspector"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "Typomedia\\Inspector\\Tests\\": "tests/"
+        }
+    },
     "require-dev": {
+        "phpunit/phpunit": "^7.5",
         "squizlabs/php_codesniffer": "^3.7",
-        "phpmd/phpmd": "^2.13"
+        "phpmd/phpmd": "^2.13",
+        "rector/rector": "^0.14.5"
     },
     "bin": [
         "bin/inspector"

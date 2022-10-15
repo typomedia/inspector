@@ -3,6 +3,7 @@
 namespace Typomedia\Inspector;
 
 use Exception;
+use RuntimeException;
 use Symfony\Component\Finder\Finder;
 
 class Crawler
@@ -24,10 +25,7 @@ class Crawler
      */
     public function parse(string $lockfile, string $whitelist): array
     {
-        $lockContent = $this->getLockContents($lockfile);
-        $decodeJson = json_decode($lockContent);
-
-        $whitelistContent = $this->getWhitelistContents($whitelist);
+        $whitelistContent = $this->getWhitelist($whitelist);
 
         $this->extract(self::ENDPOINT);
 
@@ -63,24 +61,26 @@ class Crawler
             }
         }
 
+        $decodeJson = $this->getContents($lockfile);
+
         foreach ($decodeJson->packages as $package) {
             $version = trim((string) $package->version, 'v');
             foreach ($this->advisories[$package->name] as $advisory) {
                 $gid = strtolower((string) $advisory['data']->id);
                 $cve = strtolower((string) $advisory['data']->aliases[0]);
 
-                $vuls = $whitelistContent['packages'][$package->name]['vuls'];
-                $whitelist = array_map('strtolower', $vuls ?: []);
+                $vuls = $whitelistContent[$package->name]['vuls'] ?? [];
+                $whitelist = array_map('strtolower', $vuls);
 
                 if (!in_array($gid, $whitelist) && !in_array($cve, $whitelist)) {
                     if (version_compare($version, $advisory['intro'] ?? '', '>=') &&
                         version_compare($version, $advisory['fixed'] ?? '', '<')) {
-                        $this->vulnerabilities[$package->name . ' (' . $version . ')'][] = ($advisory);
+                        $this->vulnerabilities[$package->name . '@' . $version][] = ($advisory);
                     }
 
                     if (version_compare($version, $advisory['intro'] ?? '', '>=') &&
                         version_compare($version, $advisory['range'] ?? '', '<=')) {
-                        $this->vulnerabilities[$package->name . ' (' . $version . ')'][] = ($advisory);
+                        $this->vulnerabilities[$package->name . '@' . $version][] = ($advisory);
                     }
                 }
             }
@@ -90,7 +90,7 @@ class Crawler
     }
 
     /**
-     * @throws Exception
+     * @throws RuntimeException
      */
     private function extract(string $fileUrl): void
     {
@@ -100,71 +100,39 @@ class Crawler
             $zip = new \ZipArchive();
             if (file_exists($fileZip)) {
                 if ($zip->open($fileZip)) {
-                    $zip->extractTo('.');
+                    $zip->extractTo(__DIR__);
                     $zip->close();
                 } else {
-                    throw new Exception("Failed to open '$fileZip'");
+                    throw new RuntimeException("Failed to open '$fileZip'");
                 }
             } else {
-                throw new Exception("File doesn't exist. '$fileZip'");
+                throw new RuntimeException("File doesn't exist. '$fileZip'");
             }
         }
     }
 
     /**
-     * @param string $lock
-     * @return string
+     * @param string $file
+     * @return object
      */
-    private function getLockContents(string $lock): string
+    public function getContents(string $file)
     {
-        $contents = json_decode(file_get_contents($lock), true);
-        $hash = $contents['content-hash'] ?? ($contents['hash'] ?? '');
-        $packages = [
-            'content-hash' => $hash,
-            'packages' => [],
-            'packages-dev' => []
-        ];
-
-        foreach (['packages'] as $key) {
-            if (!\is_array($contents[$key])) {
-                continue;
-            }
-
-            foreach ($contents[$key] as $package) {
-                $data = [
-                    'name' => $package['name'],
-                    'version' => $package['version'],
-                ];
-                if (isset($package['time']) && false !== strpos($package['version'], 'dev')) {
-                    $data['time'] = $package['time'];
-                }
-
-                $packages[$key][] = $data;
-            }
-        }
-
-        return json_encode($packages);
+        return json_decode(file_get_contents($file), false);
     }
 
     /**
-     * @param string $whitelist
-     * @return array|array[]
+     * @param string $file
+     * @return array
      */
-    private function getWhitelistContents(string $whitelist): array
+    private function getWhitelist(string $file): array
     {
-        $contents = json_decode(file_get_contents($whitelist), true);
+        $contents = $this->getContents($file);
         $whitelist = [];
 
-        foreach (['packages'] as $key) {
-            if (!\is_array($contents[$key])) {
-                continue;
-            }
-
-            foreach ($contents[$key] as $package) {
-                $whitelist[$key][$package['name']] = [
-                    'vuls' => $package['whitelist'],
-                ];
-            }
+        foreach ($contents->packages as $package) {
+            $whitelist[$package->name] = [
+                'vuls' => $package->whitelist,
+            ];
         }
 
         return $whitelist;
