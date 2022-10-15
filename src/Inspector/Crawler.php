@@ -69,7 +69,7 @@ class Crawler
                 $gid = strtolower((string) $advisory['data']->id);
                 $cve = strtolower((string) $advisory['data']->aliases[0]);
 
-                $vuls = $whitelistContent[$package->name]['vuls'] ?? [];
+                $vuls = $whitelistContent[$package->name]['vuls'];
                 $whitelist = array_map('strtolower', $vuls);
 
                 if (!in_array($gid, $whitelist) && !in_array($cve, $whitelist)) {
@@ -130,11 +130,9 @@ class Crawler
         $whitelist = [];
 
         foreach ($contents->packages as $package) {
-            if (isset($package->whitelist)) {
                 $whitelist[$package->name] = [
-                    'vuls' => $package->whitelist,
+                    'vuls' => $package->whitelist ?? [],
                 ];
-            }
         }
 
         return $whitelist;
