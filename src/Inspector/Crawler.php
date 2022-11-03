@@ -122,14 +122,14 @@ class Crawler
     }
 
     /**
+     * @param string $url
      * @param string $file
-     * @param string $name
      * @return void
      */
-    public function fetch(string $file, string $name): void
+    public function fetch(string $url, string $file): void
     {
-        if (!file_exists($name) || time() > (filemtime($name) + (60 * 60 * 2))) {
-            file_put_contents($name, file_get_contents($file));
+        if (!file_exists($file) || time() > (filemtime($file) + (60 * 60 * 2))) {
+            file_put_contents($file, file_get_contents($url));
         }
     }
 

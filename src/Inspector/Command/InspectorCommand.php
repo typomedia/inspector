@@ -11,6 +11,7 @@
 
 namespace Typomedia\Inspector\Command;
 
+use Exception;
 use Typomedia\Inspector\Inspector;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -23,7 +24,7 @@ class InspectorCommand extends Command
     /**
      * @var array
      */
-    const SERVERITY = [
+    public const SERVERITY = [
         'low'       => 1,
         'moderate'  => 2,
         'high'      => 3,
@@ -85,6 +86,7 @@ EOF
      * @param InputInterface $input
      * @param OutputInterface $output
      * @return int
+     * @throws Exception
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {

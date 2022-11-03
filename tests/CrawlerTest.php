@@ -13,6 +13,6 @@ class CrawlerTest extends TestCase
         $whitelist = $crawler->getWhitelist(__DIR__ . '/../example.json');
         $this->assertEquals(['GHSA-52m2-vc4m-jj33', 'CVE-2022-39261'], $whitelist['twig/twig']['vuls']);
         $lockfile = $crawler->getContents('composer.lock');
-        $this->assertEquals(8, count($lockfile->packages));
+        $this->assertCount(8, $lockfile->packages);
     }
 }
